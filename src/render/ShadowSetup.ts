@@ -12,6 +12,7 @@ import {
   If,
   float,
   interleavedGradientNoise,
+  positionWorld,
   reference,
   screenCoordinate,
   texture,
@@ -83,13 +84,28 @@ export interface ShadowRig {
   csm: CSMShadowNode;
 }
 
-export function setupSunShadows(sun: DirectionalLight, camera: PerspectiveCamera): ShadowRig {
+/**
+ * @param cloudShadow optional world-space sun-transmittance factor (clouds):
+ * multiplied into the filter result so it gates ONLY direct sun light.
+ */
+export function setupSunShadows(
+  sun: DirectionalLight,
+  camera: PerspectiveCamera,
+  cloudShadow?: (wxz: NV2) => NF,
+): ShadowRig {
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.bias = -0.00012;
   sun.shadow.normalBias = 2.2;
   sun.shadow.radius = 1.15;
-  (sun.shadow as unknown as { filterNode: unknown }).filterNode = pcssFilter;
+
+  const filter = cloudShadow
+    ? Fn((inputs: unknown) => {
+        const base = (pcssFilter as unknown as (i: unknown) => NF)(inputs);
+        return base.mul(cloudShadow(positionWorld.xz));
+      })
+    : pcssFilter;
+  (sun.shadow as unknown as { filterNode: unknown }).filterNode = filter;
 
   const csm = new CSMShadowNode(sun, {
     cascades: 4,

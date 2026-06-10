@@ -50,6 +50,7 @@ import type { Engine } from '../core/Engine';
 import { hash12 } from '../gpu/noise/NoiseTSL';
 import type { NV3, NV4 } from '../gpu/TSLTypes';
 import type { Atmosphere } from '../sky/Atmosphere';
+import type { Clouds } from '../sky/Clouds';
 import { GradeUniforms, gradeParamsAt } from './ColorScript';
 
 export class PostStack {
@@ -58,10 +59,19 @@ export class PostStack {
   private exposureBuf: StorageBufferNode<'float'>;
   private exposureKernel: Parameters<Renderer['compute']>[0];
 
-  constructor(engine: Engine, atmosphere: Atmosphere, tod: number) {
+  constructor(
+    engine: Engine,
+    atmosphere: Atmosphere,
+    tod: number,
+    clouds: Clouds | null = null,
+  ) {
     const { renderer, scene, camera } = engine;
     renderer.toneMapping = AgXToneMapping;
     renderer.toneMappingExposure = 1.0;
+    const frameU = uniform(0);
+    engine.onUpdate(() => {
+      frameU.value = (frameU.value + 1) % 1024;
+    });
 
     const scenePass = pass(scene, camera);
     scenePass.setMRT(
@@ -87,9 +97,20 @@ export class PostStack {
       const dirW = rel.div(dist.max(1e-4));
       const distKm = dist.div(1000);
       const camAltKm = cameraPosition.y.div(1000).max(0.005);
+      const isSky = d.lessThanEqual(1e-7);
       const hazed = atmosphere.aerial(col, dirW, camAltKm, distKm);
       // reversed-z: far plane clears to 0 → sky already carries the atmosphere
-      return d.lessThanEqual(1e-7).select(col, hazed);
+      const scenePart = isSky.select(col, hazed).toVar();
+
+      if (clouds) {
+        const maxD = isSky.select(float(1e9), dist);
+        const jitter = hash12(
+          screenUV.mul(vec2(911.3, 423.7)).add(float(frameU).mul(0.61803)),
+        );
+        const cl = clouds.march(cameraPosition, dirW, maxD, jitter);
+        scenePart.assign(scenePart.mul(float(1).sub(cl.alpha)).add(cl.color));
+      }
+      return scenePart;
     })();
 
     // --- GTAO --------------------------------------------------------------------

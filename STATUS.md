@@ -84,28 +84,42 @@ feedback comes in chat; the two-frame test is the agent-side acceptance only.
 
 ## Current focus
 
-**Phase 2 — atmosphere, shadows, clouds, post.** The biggest visual transformation.
-Plan:
-1. [ ] `src/sky/Atmosphere.ts` — Hillaire LUTs: transmittance (256×64), multiscatter (32²),
-       sky-view (192×108) — compute passes, ToD-driven sun direction; sky background node
-       from sky-view LUT; aerial perspective applied in terrain/far materials (or post fog pass).
-2. [ ] Sun/IBL: scene sun DirectionalLight driven by ToD w/ transmittance-tinted color;
-       IBL via PMREM from a small sky render (refresh on ToD change); EV auto-exposure
-       (luminance histogram compute → smoothed exposure uniform into tone map).
-3. [ ] Shadows: CSMShadowNode (4 cascades, 2048²) + PCSS-style soft filtering near; verify
-       custom-positionNode casting; screen-space contact shadows in post.
-4. [ ] Clouds: 2-layer raymarched Worley–Perlin (3D noise via compute into Storage3DTexture),
-       half-res + temporal reprojection, below-summit placement, cloud shadow map projected
-       on terrain.
-5. [ ] Post stack via `PostProcessing`: TAA (TRAANode), GTAO, bloom, filmic grade w/ per-ToD
-       color script (teal-orange at golden hour), AgX, vignette/grain; photo-mode DoF param.
-6. [ ] Gate: golden-hour alpine vista vs Witcher ref; shadow-color test (chroma in shadows);
-       DELTA + fix top 3; commit.
+**Phase 2 — atmosphere, shadows, clouds, post.** STATE AS OF 2026-06-11 (checkpoint for
+context compaction — everything below is BUILT, COMPILING, and RENDERING unless noted):
+
+1. [x] `src/sky/Atmosphere.ts` — Hillaire LUTs (transmittance 256×64, multiscatter 32²,
+       sky-view 192×108 w/ ground-lit horizon term), sun disc, SUN_E=8 unit contract
+       (LUT samples ×SUN_E; sun light = SUN_E·CPU-transmittance), aerial() = analytic
+       atmosphere + boundary-layer height fog (FOG_K 0.22, H0 0.16 km, HF 0.38 km).
+2. [x] `src/sky/SunSky.ts` — ToD sun model (sunDirection static fn), transmittance-tinted
+       DirectionalLight, sky backgroundNode, CubeCamera IBL (NOT visibly contributing —
+       hemisphere ambient stopgap added; Phase 3 probes replace it), `[`/`]` keys step ToD.
+3. [x] `src/render/ShadowSetup.ts` — CSMShadowNode 4×2048 + custom PCSS filterNode
+       (blocker search → penumbra Vogel PCF) + optional cloudShadow multiplier (gates sun
+       only). VERIFIED: cast shadows + blue ambient fill in shots/wip/shadows-v4.png.
+4. [x] `src/sky/Clouds.ts` — perlin-worley 96³ + detail 32³ noise baked, layer 1250–1900 m,
+       march() with Beer–Powder + dual-HG, top-down cloud shadow map (768²) sampled via
+       shadowAt() in the PCSS filter. INTEGRATED into post; **NOT YET VISIBLE in test shot**
+       (shots/wip/clouds-v1.png) — next step: tune coverage/density/weather mapping, verify
+       the slab intersection math, possibly raise coverage 0.46→0.6 to debug.
+5. [x] `src/render/PostStack.ts` — RenderPipeline: scene MRT pass (output/normal/velocity/
+       depth) → aerial+clouds (depth-reconstructed world pos) → GTAO ×mul → TRAA → bloom →
+       GPU auto-exposure (12×12 log-avg into storage buffer, no readback; meter() each
+       frame) → ColorScript grade (per-ToD keyframes in `src/render/ColorScript.ts`,
+       teal-orange at golden) → AgX. Engine renders via `engine.post`.
+6. [ ] REMAINING for Phase 2 close: clouds visible + tuned (incl. shots with cloud sea below
+       summits per Witcher ref), screen-space contact shadows in post, golden-hour gate shot
+       vs reference + shadow-color test (sample 16 shadowed px, chroma must not be gray),
+       DELTA + fix top 3, commit, mark task #3 done.
 
 ## Next actions (always keep current)
 
-- Phase 2 step 1: Atmosphere LUT passes + sky background + sun color. Verify CSMShadowNode
-  API from node_modules first (docs/THREE-NOTES "Open questions").
+- Debug cloud visibility: shoot with coverage uniform pushed up (e.g. 0.75); check march()
+  slab intersection (camera ABOVE layer looking down = tEnter/tExit both behind? handled),
+  weather field sign, density scale. Then golden-hour vista with clouds among peaks.
+- Then: contact shadows post node; gate battery; close Phase 2.
+- KNOWN visual debts: scene still washy/low-contrast (tune exposure key/grade at gate);
+  IBL env-map path dead (hemisphere covers it); snow on south hero face sparse (gate call).
 
 ## Key decisions log
 

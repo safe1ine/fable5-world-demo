@@ -28,7 +28,8 @@
       "Bash(python3 -)",
       "Bash(sed -n '163,170p' src/render/PostStack.ts)",
       "Bash(awk 'NR==166' src/render/PostStack.ts)",
-      "Bash(git commit -q -m 'Phase 2 WIP: Hillaire atmosphere, sun/IBL, CSM+PCSS, post stack *)"
+      "Bash(git commit -q -m 'Phase 2 WIP: Hillaire atmosphere, sun/IBL, CSM+PCSS, post stack *)",
+      "Bash(git commit -q -m 'Phase 2 WIP checkpoint: volumetric clouds integrated \\(tuning pending\\) *)"
     ]
   }
 }

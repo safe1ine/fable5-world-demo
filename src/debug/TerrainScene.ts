@@ -11,6 +11,7 @@ import { Heightfield } from '../world/Heightfield';
 import { TerrainTiles } from '../world/TerrainTiles';
 import { PostStack } from '../render/PostStack';
 import { setupSunShadows } from '../render/ShadowSetup';
+import { Clouds } from '../sky/Clouds';
 import { SunSky } from '../sky/SunSky';
 import type { WorldContext } from './Scenes';
 
@@ -65,20 +66,29 @@ export async function buildTerrainScene(ctx: WorldContext): Promise<void> {
   await sunSky.init(engine.renderer);
   (engine as unknown as { sunSky?: SunSky }).sunSky = sunSky;
 
-  // 4-cascade CSM + PCSS contact hardening
-  setupSunShadows(sunSky.sun, engine.camera);
+  // volumetric clouds (noise bake + sun-shadow map)
+  ctx.progress(0.97, 'sky: baking cloud noise');
+  const clouds = new Clouds(sunSky.atmosphere);
+  await clouds.init(engine.renderer);
 
-  // HDR post stack: aerial perspective, GTAO, TRAA, bloom, exposure, grade
+  // 4-cascade CSM + PCSS contact hardening; cloud shadows gate the sun term
+  setupSunShadows(sunSky.sun, engine.camera, (wxz) => clouds.shadowAt(wxz));
+
+  // HDR post stack: aerial perspective, clouds, GTAO, TRAA, bloom, exposure, grade
   ctx.progress(0.98, 'post: building pipeline');
-  const post = new PostStack(engine, sunSky.atmosphere, params.timeOfDay);
+  const post = new PostStack(engine, sunSky.atmosphere, params.timeOfDay, clouds);
   engine.post = post;
 
   ctx.hooks.setTimeOfDay = (t: number) => {
-    void sunSky.setTimeOfDay(t);
-    post.setTimeOfDay(t);
+    void (async () => {
+      await sunSky.setTimeOfDay(t);
+      await clouds.refreshShadow(engine.renderer);
+      post.setTimeOfDay(t);
+    })();
   };
   window.addEventListener('keydown', (e) => {
     if (e.code === 'BracketLeft' || e.code === 'BracketRight') {
+      void clouds.refreshShadow(engine.renderer);
       post.setTimeOfDay(sunSky.timeOfDay);
     }
   });
