@@ -8,6 +8,7 @@
  */
 
 import { Froxels } from '../gpu/passes/Froxels';
+import { PARTICLE_COUNT, Particles } from '../gpu/passes/Particles';
 import { ProbeGI } from '../gpu/passes/ProbeGI';
 import { buildCanopyMap, runScatter } from '../gpu/passes/Scatter';
 import { addScatterDebug } from './ScatterDebug';
@@ -203,6 +204,14 @@ export async function buildTerrainScene(ctx: WorldContext): Promise<void> {
     sunSky,
     shadowRig,
   };
+
+  // GPU particles: snow/pollen/leaves riding the wind (?ablate=particles)
+  if (view !== 'split' && !ablate.has('particles')) {
+    const parts = new Particles(hf, canopyTex, ablate.has('gi') ? null : gi);
+    engine.scene.add(parts.mesh);
+    engine.onUpdate((dt) => parts.update(engine.renderer, engine.camera, dt));
+    engine.stats.counters['particles'] = PARTICLE_COUNT;
+  }
 
   // froxel volumetrics: canopy shafts + valley fog (?ablate=froxels, ?fog=N)
   let froxels: Froxels | null = null;
