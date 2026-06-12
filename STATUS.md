@@ -575,14 +575,55 @@ cov 0.62), contact shadows (?ablate=contact to A/B), black facets root-caused to
     still animates on wall-clock TSL time — exclude or accept;
     (d) headless fps ≈ wall only when GPU-bound; with the prepass, bm4
     became CPU-submit-bound and 10 ms GPU savings moved fps <1.
-- KNOWN LIMITATION (logged 2026-06-12, deep-dived): large-lake FAR RIM
+- **BUG (user-reported 2026-06-14, MUST SOLVE — top of queue after
+  rehydration): HORIZON TURNS FULL BLACK ON REGULAR TERRAIN.** User
+  screenshot preserved: shots/wip/horizon-black-user.png — low-eye view
+  over flat ground; terrain darkens WITH DISTANCE into a solid pitch-black
+  band hugging the horizon line, normal sky above a sharp silhouette. The
+  expected look is the opposite: terrain should fade INTO luminous haze
+  (Pillar D). User: "this issue of horizons turning full black isn't just
+  water related — it's also on regular terrain."
+  UNIFICATION HYPOTHESIS: the long-standing lake FAR-RIM black stripe
+  (bm2, entry below) may be DOWNSTREAM of this — grazing water reflects
+  the far terrain band / samples the same grazing-angle paths; fixing
+  this may resolve both. Candidate mechanisms, ranked:
+  (a) AERIAL/HILLAIRE AT GRAZING: at horizon view angles dirW.y≈0 is the
+  classic LUT parameterization singularity; if transmittance multiplies
+  toward 0 while in-scatter fails to add (LUT edge/wrap sampling, or
+  NaN→0) the far field goes black exactly at grazing — matches BOTH
+  terrain and water symptoms. Also check distKm reconstruction for
+  depth→1−ε (classic depth, far plane 30 km — precision at grazing can
+  explode dist; the isSky threshold is 0.9999999 and pixels just inside
+  it get huge distances fed to aerial()).
+  (b) CSM BEYOND maxFar (3200 m): eye at 1.7 m puts the geometric horizon
+  at ~4.7 km — the band plausibly starts at ~3.2 km. If pixels beyond the
+  last cascade sample as FULLY SHADOWED (fade broken or
+  CachedCsmShadowNode interaction with csm.fade) the far field drops to
+  ambient-only ≈ black. Violates the no-black-shadows law.
+  (c) probe-GI/ambient coverage ending before the far field (softer gray
+  expected, full black less likely); (d) far-shell material/world-edge.
+  DIAGNOSIS PLAN: (1) repro at a ground-level pose over open ground
+  (walk-spawn + horizon look, or lakeshore bm8), pixel-sample a vertical
+  scanline through the band (tools/compare.ts --sample) — confirm RGB≈0;
+  (2) BISECT post vs in-material: ?postmin=1 (bare scene pass, no
+  aerial/AO) — band persists ⇒ in-material (shadows/lighting, candidate
+  b); band vanishes ⇒ post chain (candidate a); (3) ?ablate=shadows A/B
+  for (b); cloudview aerial-only view + a transmittance/in-scatter split
+  probe for (a); (4) altitude discriminator: from 200 m the band should
+  track a FIXED ground distance if (b) (cascade end) vs cling to grazing
+  angles if (a); (5) whichever fixes, re-judge the bm2 lake far-rim
+  stripe — link the two items.
+- KNOWN LIMITATION (logged 2026-06-12, deep-dived; RE-JUDGE after the
+  horizon-black fix above — likely the same root): large-lake FAR RIM
   shows a thin dark band at low grazing views (bookmark 2). Diagnosis
   trail: NOT trees/fresnel/SSR-reach/canopy-attenuation/wet-fringe — it
   is the min-reduced far water field dipping at shore-overlapping 8×8
   blocks, exaggerated edge-on. min-of-wet/max-of-wet reductions tried and
   REJECTED (inlet lens/dome — two legitimate wet levels bridge a 16 m far
   texel). Proper fix = per-water-body far field or the planar-lake pass
-  (optional polish item); revisit only if the user flags it live.
+  (optional polish item); ALSO superseded-in-part by the 2026-06-12
+  ablate-discriminated finding (grazing fresnel mirrors the dark SSR-miss
+  fallback) — and now possibly by the terrain horizon-black bug.
 
 ## Key decisions log
 
