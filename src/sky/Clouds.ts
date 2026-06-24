@@ -298,13 +298,13 @@ export class Clouds {
     const trans = float(1).toVar();
     const light = vec3(0).toVar();
     const ambient = this.atmosphere
-      .skyColor(vec3(dir.x, dir.y.abs().max(0.25), dir.z))
-      .mul(0.5)
-      .add(this.atmosphere.skyColor(dir).mul(0.5));
+      .skyColor(vec3(dir.x, dir.y.abs().max(0.32), dir.z))
+      .mul(0.62)
+      .add(this.atmosphere.skyColor(dir).mul(0.58));
     const nu = dir.dot(sunDir);
     // dual-lobe HG
-    const g1 = 0.62;
-    const g2 = -0.18;
+    const g1 = 0.52;
+    const g2 = -0.12;
     const hg = (g: number): NF => {
       const gg = g * g;
       return float((1 - gg) / (4 * Math.PI)).div(
@@ -312,7 +312,7 @@ export class Clouds {
       );
     };
     // isotropic floor ≈ multiple scattering (clouds are never phase-black)
-    const phase = hg(g1).mul(0.75).add(hg(g2).mul(0.25)).add(0.14);
+    const phase = hg(g1).mul(0.68).add(hg(g2).mul(0.32)).add(0.2);
     const sunT = this.atmosphere.sampleTransmittance(float(6360.35), clamp(sunDir.y, -1, 1));
 
     If(valid, () => {
@@ -339,10 +339,10 @@ export class Clouds {
           const S = sunT
             .mul(sunVis)
             .mul(phase)
-            .mul(SUN_E * 3.4)
-            .add(ambient.mul(hn.mul(0.55).add(0.45)).mul(0.38))
-            .mul(powder.mul(0.75).add(0.25));
-          const stepT = exp(dens.mul(seg).mul(-0.052));
+            .mul(SUN_E * 3.0)
+            .add(ambient.mul(hn.mul(0.62).add(0.52)).mul(0.5))
+            .mul(powder.mul(0.6).add(0.4));
+          const stepT = exp(dens.mul(seg).mul(-0.04));
           light.addAssign(S.mul(trans).mul(float(1).sub(stepT)));
           trans.mulAssign(stepT);
         });

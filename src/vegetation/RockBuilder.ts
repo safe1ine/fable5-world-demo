@@ -38,13 +38,13 @@ export interface RockParams {
 export const ROCK_PRESETS = {
   hero: {
     radius: 3.4, squash: [1, 0.82, 0.9] as [number, number, number],
-    macro: 0.38, strata: 0.16, strataFreq: 3.1, strataTilt: 0.3,
-    ridged: 0.17, cuts: 8, cutBite: 0.34, micro: 0.022,
+    macro: 0.28, strata: 0.08, strataFreq: 2.4, strataTilt: 0.22,
+    ridged: 0.09, cuts: 4, cutBite: 0.18, micro: 0.014,
   },
   boulder: {
     radius: 1.1, squash: [1, 0.74, 0.92] as [number, number, number],
-    macro: 0.24, strata: 0.045, strataFreq: 3.2, strataTilt: 0.2,
-    ridged: 0.05, cuts: 2, cutBite: 0.1, micro: 0.012,
+    macro: 0.18, strata: 0.02, strataFreq: 2.6, strataTilt: 0.14,
+    ridged: 0.025, cuts: 1, cutBite: 0.04, micro: 0.009,
   },
   angular: {
     radius: 0.85, squash: [1, 0.85, 0.95] as [number, number, number],
@@ -53,8 +53,8 @@ export const ROCK_PRESETS = {
   },
   slab: {
     radius: 1.7, squash: [1, 0.42, 0.78] as [number, number, number],
-    macro: 0.16, strata: 0.08, strataFreq: 5, strataTilt: 0.12,
-    ridged: 0.05, cuts: 5, cutBite: 0.28, micro: 0.012,
+    macro: 0.12, strata: 0.04, strataFreq: 3.4, strataTilt: 0.08,
+    ridged: 0.03, cuts: 2, cutBite: 0.12, micro: 0.01,
   },
   cobble: {
     radius: 0.16, squash: [1, 0.72, 0.88] as [number, number, number],
@@ -63,8 +63,8 @@ export const ROCK_PRESETS = {
   },
   cliffFace: {
     radius: 3.0, squash: [1, 1.7, 0.5] as [number, number, number],
-    macro: 0.22, strata: 0.13, strataFreq: 5.5, strataTilt: 0.1,
-    ridged: 0.12, cuts: 6, cutBite: 0.4, micro: 0.02,
+    macro: 0.16, strata: 0.07, strataFreq: 3.8, strataTilt: 0.08,
+    ridged: 0.06, cuts: 3, cutBite: 0.18, micro: 0.015,
   },
   // freshly-shed talus block: faceted but not box-prismatic ('angular' at
   // cuts 10/bite .5 produced near-cubes), with surface roughness so the

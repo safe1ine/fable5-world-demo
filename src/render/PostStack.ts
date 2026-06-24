@@ -438,7 +438,6 @@ export class PostStack {
       });
       return result;
     })();
-
     // aoFaded is null exactly when ablate.has('ao') (no merged-pass entry) —
     // preserving the old ablate semantics: AO ablation also drops contact
     const withAO =
@@ -651,4 +650,3 @@ export class PostStack {
     this.post.render();
   }
 }
-

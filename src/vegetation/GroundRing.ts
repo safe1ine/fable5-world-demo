@@ -234,7 +234,7 @@ function bladeClump(blades: number, segs: number): BufferGeometry {
     const uA = base.attributes.uv as BufferAttribute;
     const v0 = pos.length / 3;
     for (let i = 0; i < p.count; i++) {
-      const x = p.getX(i) * 1.25;
+      const x = p.getX(i) * 1.9;
       const y = p.getY(i) * hk;
       const z = p.getZ(i);
       pos.push(x * c + z * sn + ox + lean * y * c, y, z * c - x * sn + oz + lean * y * sn);
@@ -253,7 +253,7 @@ function bladeClump(blades: number, segs: number): BufferGeometry {
 }
 
 /** three crossed wide blades — far-band tuft (≈ a small clump in one card) */
-function tuftGeometry(W = 0.04): BufferGeometry {
+function tuftGeometry(W = 0.075): BufferGeometry {
   const pos: number[] = [];
   const nrm: number[] = [];
   const uvA: number[] = [];
@@ -266,8 +266,8 @@ function tuftGeometry(W = 0.04): BufferGeometry {
     for (const [u, v] of [
       [-W, 0],
       [W, 0],
-      [W * 0.55, 1],
-      [-W * 0.55, 1],
+      [W * 0.72, 1],
+      [-W * 0.72, 1],
     ] as const) {
       pos.push(u * c, v, u * s);
       // rounded cross-section (see grassBladeGeometry): edges tilt ±38°
@@ -447,7 +447,7 @@ export class GroundRing {
       // is widen-blurred and flags whole gorge floors as "river" — grass
       // vanished from every dry bank (scene1 banks are green to the line)
       const above = h.sub(hf.sampleWaterYNearest(wpos));
-      If(above.lessThan(0.04), () => {
+      If(above.lessThan(0.12), () => {
         Return();
       });
       const canopy = canopyAt(canopyTex, wpos);
@@ -456,20 +456,20 @@ export class GroundRing {
       // cobbles take over there (scene1: cobbled floor with grassy banks,
       // not a meadow blanket to the waterline) — but never zeroes, so
       // tufts still break the gravel.
-      const bank = smoothstep(0.06, 0.5, above).mul(
-        float(1).sub(smoothstep(0.2, 1.1, fl.z).mul(0.78)),
+      const bank = smoothstep(0.14, 0.7, above).mul(
+        float(1).sub(smoothstep(0.08, 0.45, fl.z).mul(0.88)),
       );
-      let dens = byBio(bioId, [0.18, 0.7, 0.62, 0.7, 1.5, 1.1])
+      let dens = byBio(bioId, [0.76, 1.6, 1.52, 1.56, 1.72, 1.66])
         .mul(bank)
-        .mul(bio.z.mul(0.85).add(0.15))
+        .mul(bio.z.mul(0.62).add(0.56))
         .mul(float(1).sub(bio.w.mul(0.55)))
-        .mul(float(1).sub(canopy.mul(0.45)))
-        .mul(fl.x.mul(0.35).add(0.75));
+        .mul(float(1).sub(canopy.mul(0.12)))
+        .mul(fl.x.mul(0.2).add(0.84));
       // near-field scruff floor: NOTHING within ~12 m may be totally bald
       // (Pillar A) — thin dry blades survive even on poor soil. Hard gates
       // (water, snow, steep rock) still apply below.
       dens = dens.max(
-        float(0.3).mul(float(1).sub(smoothstep(8, 14, dist))).mul(bank),
+        float(0.7).mul(float(1).sub(smoothstep(8, 18, dist))).mul(bank),
       );
       dens = dens
         .mul(float(1).sub(bio.y.mul(0.95)))

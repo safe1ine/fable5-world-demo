@@ -151,21 +151,21 @@ export async function runFlowRivers(
     // otherwise we'd cut the outlet sill and drain the lake
     const dLake = wpos.sub(vec2(opts.mp.lakeC[0], opts.mp.lakeC[1])).length();
     const tLake = smoothstep(opts.mp.lakeR, opts.mp.lakeR * 0.25, dLake);
-    const trenchFade = smoothstep(0.5, 0.12, tLake);
+    const trenchFade = smoothstep(0.62, 0.2, tLake);
     // V-profile: deepest at the centerline, rim allowance rises smoothly —
     // a hard select() at fixed distance cut razor-walled rectangular canyons.
     // Beyond the rim the ceiling exceeds local terrain → constraint inactive.
-    const mainProf = smoothstep(34, 4, vf.valleyDist);
-    const tribProf = smoothstep(14, 1.5, vf.tribDist);
+    const mainProf = smoothstep(28, 6, vf.valleyDist);
+    const tribProf = smoothstep(10, 2.5, vf.tribDist);
     const enforced = min(
       vf.valleyFloor
-        .sub(float(15.2).mul(trenchFade).mul(mainProf))
-        .add(mainProf.oneMinus().mul(46))
-        .add(max(vf.valleyDist.sub(30), 0).mul(3)),
+        .sub(float(2.2).mul(trenchFade).mul(mainProf))
+        .add(mainProf.oneMinus().mul(10))
+        .add(max(vf.valleyDist.sub(14), 0).mul(0.65)),
       vf.tribFloor
-        .add(0.4)
-        .add(tribProf.oneMinus().mul(30))
-        .add(max(vf.tribDist.sub(12), 0).mul(3)),
+        .add(1.8)
+        .add(tribProf.oneMinus().mul(7))
+        .add(max(vf.tribDist.sub(5), 0).mul(0.8)),
     );
     height.element(i).assign(min(height.element(i), enforced));
   })().compute(N);
@@ -324,7 +324,7 @@ export async function runFlowRivers(
   const W = wA;
 
   // --- 2. flow accumulation by particle tracing -------------------------------
-  const STEPS = 260;
+  const STEPS = 180;
   const traceK = Fn<void>(() => {
     If(instanceIndex.greaterThanEqual(particles), () => {
       Return();
@@ -419,10 +419,10 @@ export async function runFlowRivers(
   //  - WATER_T (≈15× stricter) → waterStrength: drives VISIBLE open water
   //    only. Small gullies stay dry cobbled scars; the main river, big
   //    tributaries and ravine runs keep their streams.
-  const RIVER_T = particles / N + 14;
+  const RIVER_T = particles / N + 180;
   // raised 220 → 320 with the stricter rSurf curve (user: "A TON of water
   // absolutely everywhere") — only genuine collectors render open water
-  const WATER_T = particles / N + 320;
+  const WATER_T = particles / N + 3600;
   const waterStrength = instancedArray(N, 'float');
   const strengthK = guard(() => {
     const { i } = cellXY();
@@ -475,7 +475,13 @@ export async function runFlowRivers(
     // lakebeds keep their filled profile — carving there printed the particle
     // wander pattern into the basin floor (user-flagged artifact)
     const lakeFade = smoothstep(LAKE_DELTA * 0.7, 0.12, lakeD);
-    const depth = sB.pow(1.35).mul(7.5).mul(lakeFade);
+    // Grassland mode: keep the main watered channels, but suppress low-flow
+    // carve-only gullies. `waterStrength` is the strict visible-water field;
+    // use it to attenuate the low end of the carve instead of deepening every
+    // drainage line into a dry trench.
+    const wB = clamp(waterStrength.element(i).mul(1.5), 0, 1);
+    const dryGullyFade = smoothstep(0.08, 0.28, wB).mul(0.9).add(0.1);
+    const depth = sB.pow(1.35).mul(7.5).mul(lakeFade).mul(dryGullyFade);
     const hNew = height.element(i).sub(depth).toVar();
     height.element(i).assign(hNew);
     const wl = W.element(at(x, y, -1, 0));
@@ -500,7 +506,6 @@ export async function runFlowRivers(
     // wall. Slower saturation + sharper power keep water to the channel
     // CORE; peak ~1.5 m is wading depth, headwaters become trickles in a
     // cobbled bed. Lakes (fill level) and flowStrength consumers untouched.
-    const wB = clamp(waterStrength.element(i).mul(1.5), 0, 1);
     const rSurf = wB.pow(2.2).mul(3.3).mul(lakeFade).mul(0.45).add(0.12)
       .mul(rdGate).sub(0.12).max(0);
     const riverWet = wB.greaterThan(0.05).and(rSurf.greaterThan(0.05));

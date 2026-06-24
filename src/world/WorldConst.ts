@@ -55,10 +55,10 @@ export interface QualityConfig {
 export function qualityConfig(preset: 'low' | 'high' | 'ultra'): QualityConfig {
   switch (preset) {
     case 'low':
-      return { heightRes: 2048, simRes: 1024, erosionIters: 500, tileVerts: 49 };
+      return { heightRes: 2048, simRes: 1024, erosionIters: 280, tileVerts: 49 };
     case 'ultra':
-      return { heightRes: 4096, simRes: 2048, erosionIters: 900, tileVerts: 81 };
+      return { heightRes: 4096, simRes: 2048, erosionIters: 420, tileVerts: 81 };
     case 'high':
-      return { heightRes: HEIGHT_RES, simRes: SIM_RES, erosionIters: 640, tileVerts: 65 };
+      return { heightRes: HEIGHT_RES, simRes: SIM_RES, erosionIters: 340, tileVerts: 65 };
   }
 }

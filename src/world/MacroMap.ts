@@ -168,13 +168,13 @@ export function valleyFields(p: NV2, mp: MacroParams): ValleyFields {
   const vWarpV = vec2(
     mx_noise_float(p.div(290).add(vec2(o.warp[0], o.warp[1]))),
     mx_noise_float(p.div(290).add(vec2(o.warp[1] + 53, o.warp[0] - 53))),
-  ).mul(85);
+  ).mul(8);
   // fine meander octave: spline segments are straight lines — without this
   // the carved trenches read as long ruler-straight scars (user-flagged)
   const vWarpF = vec2(
     mx_noise_float(p.div(61).add(vec2(o.warp[0] + 211, o.warp[1] - 97))),
     mx_noise_float(p.div(61).add(vec2(o.warp[1] - 131, o.warp[0] + 173))),
-  ).mul(16);
+  ).mul(1.2);
   const pWarped = p.add(vWarpV).add(vWarpF);
   const valley = splineField(pWarped, mp.valley, mp.valleyFloors);
   const trib = splineField(pWarped, mp.trib, mp.tribFloors);
@@ -273,9 +273,9 @@ export function macroTerrain(p: NV2, mp: MacroParams, detail: 'full' | 'far'): M
   const hillsN = hillsRaw.oneMinus().pow(1.7).oneMinus();
   const hillsMask = tAlp.oneMinus().mul(tKarst.mul(0.72).oneMinus());
   const base = float(192)
-    .add(hillsN.mul(135).mul(hillsMask))
-    .add(float(KARST_PLATEAU - 192).mul(tKarst))
-    .sub(tLake.pow(1.5).mul(110));
+    .add(hillsN.mul(12).mul(hillsMask))
+    .add(float(KARST_PLATEAU - 192).mul(tKarst).mul(0.08))
+    .sub(tLake.pow(1.5).mul(56));
 
   // --- alpine ridges (anisotropic, serrated) ---------------------------------
   // rotate domain 45° and squash so ridgelines align NE–SW like a real range
@@ -300,7 +300,7 @@ export function macroTerrain(p: NV2, mp: MacroParams, detail: 'full' | 'far'): M
     }
     ridge = ridge.div(norm);
   }
-  const mountains = tAlp.mul(ridge.pow(1.5).mul(1380).add(tAlp.mul(470)));
+  const mountains = tAlp.mul(ridge.pow(1.5).mul(320).add(tAlp.mul(70)));
 
   // --- karst towers (full detail only — far shell sees plateau mass) ---------
   let towers: NF = float(0);
@@ -315,19 +315,19 @@ export function macroTerrain(p: NV2, mp: MacroParams, detail: 'full' | 'far'): M
     const towerHNoise = mx_noise_float(p.div(310).add(vec2(o.karst[0] + 99, o.karst[1] - 99)))
       .mul(0.5)
       .add(0.5);
-    const towerH = towerHNoise.mul(80).add(78);
+    const towerH = towerHNoise.mul(7).add(5);
     // keep the tributary ravine open: towers fade within ~130 m of the stream,
     // so tower cliffs become the ravine walls
-    const ravineKeep = smoothstep(55, 150, tribDist);
-    towers = towerMask.mul(towerH).mul(tKarst.pow(0.8)).mul(ravineKeep);
+  const ravineKeep = smoothstep(8, 20, tribDist);
+    towers = towerMask.mul(towerH).mul(tKarst.pow(0.8)).mul(ravineKeep).mul(0.06);
     // shallow winding gullies between towers
     const gully = pow(saturate(abs(mx_noise_float(pk.div(210))).mul(2.2).oneMinus()), 3);
-    towers = towers.sub(gully.mul(26).mul(tKarst).mul(towerMask.oneMinus()));
+    towers = towers.sub(gully.mul(1.5).mul(tKarst).mul(towerMask.oneMinus()));
   }
 
   // --- pre-valley height ------------------------------------------------------
   const detailN = full
-    ? mx_fractal_noise_float(p.div(62).add(vec2(o.detail[0], o.detail[1])), 4, 2.05, 0.5, 1).mul(7)
+    ? mx_fractal_noise_float(p.div(62).add(vec2(o.detail[0], o.detail[1])), 4, 2.05, 0.5, 1).mul(0.35)
     : float(0);
   let h: NF = base.add(mountains).add(towers).add(detailN);
 
@@ -349,29 +349,29 @@ export function macroTerrain(p: NV2, mp: MacroParams, detail: 'full' | 'far'): M
     }
     outer = outer.div(norm);
     const gaps = smoothstep(0.25, 0.75, mx_noise_float(p.div(3900).add(17.3)).mul(0.5).add(0.5));
-    h = h.add(outer.pow(1.5).mul(1750).mul(band).mul(gaps));
+    h = h.add(outer.pow(1.5).mul(180).mul(band).mul(gaps));
   }
 
   // gentle monotonic tilt toward the valley spine so hill country drains
   // (drainage-by-design: post-hoc erosion cannot carve 30 m through saddles)
-  h = h.add(min(valleyDist.mul(0.06), 95).mul(tAlp.oneMinus()).mul(tKarst.oneMinus()));
+  h = h.add(min(valleyDist.mul(0.0035), 4).mul(tAlp.oneMinus()).mul(tKarst.oneMinus()));
 
   // --- carve valley + tributary (U-profiles down to interpolated floors) ------
   // outer U-shape plus a narrower inner trench so the floor isn't an airstrip
-  const uMain = pow(smoothstep(0, mp.valleyWidth, valleyDist), 2.2);
-  h = vf.valleyFloor.add(h.sub(vf.valleyFloor).mul(uMain));
+  const uMain = pow(smoothstep(0, mp.valleyWidth * 0.28, valleyDist), 1.01);
+  h = vf.valleyFloor.add(h.sub(vf.valleyFloor).mul(uMain)).mul(0.025).add(h.mul(0.975));
   // inner trench concentrates the river (floors are tuned so its bottom stays
   // above lake level until the mouth); the trench fades across the lake so the
   // outlet sill stays at the designed lake level
-  const trench = smoothstep(120, 18, valleyDist)
-    .mul(16)
-    .mul(smoothstep(0.5, 0.12, tLake));
+  const trench = smoothstep(24, 8, valleyDist)
+    .mul(0.28)
+    .mul(smoothstep(0.62, 0.2, tLake));
   h = h.sub(trench);
   if (full) {
-    const uTrib = pow(smoothstep(0, mp.tribWidth, tribDist), 1.6);
+    const uTrib = pow(smoothstep(0, mp.tribWidth * 0.22, tribDist), 1.0);
     const tribInfl = tKarst.pow(0.5); // tributary only carves inside/near karst
     const carved = vf.tribFloor.add(h.sub(vf.tribFloor).mul(uTrib));
-    h = carved.mul(tribInfl).add(h.mul(tribInfl.oneMinus()));
+    h = carved.mul(tribInfl.mul(0.018)).add(h.mul(float(1).sub(tribInfl.mul(0.018))));
   }
 
   // keep the lake basin genuinely below lake level (tight to the basin core)

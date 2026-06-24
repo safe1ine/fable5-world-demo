@@ -115,8 +115,8 @@ export class SunSky {
 
   /** probe GI active: hemisphere becomes a small safety floor only */
   dimAmbientForGI(): void {
-    this.ambientScale = 0.15;
-    this.hemi.intensity *= 0.15;
+    this.ambientScale = 0.24;
+    this.hemi.intensity *= 0.24;
   }
 
   /** re-bake the environment cube from the sky (ToD changes only) */

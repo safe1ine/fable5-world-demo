@@ -188,7 +188,7 @@ export function waterMaterial(
     exp(absorb.mul(-SIGMA.b)),
   );
   // turbidity in-scatter follows the zenith sky → tracks time-of-day
-  const inscat = atm.skyColor(vec3(0, 1, 0)).mul(vec3(0.013, 0.036, 0.032));
+  const inscat = atm.skyColor(vec3(0, 1, 0)).mul(vec3(0.024, 0.055, 0.058));
   const refr = sceneCol.mul(T).add(inscat.mul(vec3(1, 1, 1).sub(T)));
 
   // ---- reflection: screen-space march with sky fallback ---------------------------
@@ -232,7 +232,7 @@ export function waterMaterial(
       );
     });
     // sky fallback (horizon-clamped so the LUT never samples below ground)
-    const rdirUp = vec3(rdir.x, rdir.y.max(0.035), rdir.z).normalize();
+    const rdirUp = vec3(rdir.x, rdir.y.max(0.08), rdir.z).normalize();
     const sky = atm.skyColor(rdirUp);
     // CROWNED-HORIZON occlusion: when the SSR march misses, "sky" is only
     // correct if the reflected ray clears terrain AND tree crowns. March
@@ -255,8 +255,8 @@ export function waterMaterial(
       horizonVis.mulAssign(smoothstep(-16, 7, rayY.sub(hQ)));
     }
     const wallAmb = gi
-      ? (gi.irradiance(positionWorld, rdir).mul(0.65) as unknown as NV3)
-      : (sky.mul(0.18) as unknown as NV3);
+      ? (gi.irradiance(positionWorld, rdir).mul(0.78) as unknown as NV3)
+      : (sky.mul(0.24) as unknown as NV3);
     // ripple-jittered blend breaks the residual banding at the transition
     const vJit = n.x.add(n.z).mul(0.18);
     const fallback = mix(wallAmb, sky as unknown as NV3, horizonVis.add(vJit).clamp(0, 1));
@@ -273,7 +273,7 @@ export function waterMaterial(
   // reflected (rdir above keeps the full normal)
   const nFres = vec3(n.x.mul(0.3), n.y, n.z.mul(0.3)).normalize();
   const cosT = clamp(viewDir.dot(nFres), 0.0, 1.0);
-  const fres = float(0.02).add(float(0.98).mul(cosT.oneMinus().pow(5)));
+  const fres = float(0.03).add(float(0.9).mul(cosT.oneMinus().pow(4.2)));
 
   // ---- foam ----------------------------------------------------------------------
   // Two-phase advection like the ripple normals — a linearly time-advected
@@ -308,9 +308,9 @@ export function waterMaterial(
   const foam = clamp(shoreFoam.add(rapidFoam), 0, 1).mul(foamPat).clamp(0, 0.68) as NF;
 
   // ---- compose --------------------------------------------------------------------
-  mat.colorNode = vec3(0.74, 0.76, 0.74).mul(foam);
-  mat.emissiveNode = mix(refr, skyRefl, fres).mul(foam.oneMinus());
-  mat.roughnessNode = mix(float(0.05), float(0.55), foam);
+  mat.colorNode = vec3(0.8, 0.84, 0.82).mul(foam);
+  mat.emissiveNode = mix(refr.mul(vec3(0.96, 1.02, 1.06)), skyRefl.mul(vec3(1.02, 1.04, 1.08)), fres).mul(foam.oneMinus());
+  mat.roughnessNode = mix(float(0.08), float(0.6), foam);
   // shoreline feather: mm-deep water fades out over the bed. ALSO fade
   // steep surface RAMPS: the field dives ~2 m to the dry sentinel past
   // every shoreline — across a FLAT far beach seen edge-on that dive

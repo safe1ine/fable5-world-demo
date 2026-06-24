@@ -276,9 +276,9 @@ export function foliageMaterial(p: FoliageMatParams): MeshStandardNodeMaterial {
     tinted as unknown as Parameters<typeof varying>[0],
   ) as unknown as typeof mat.colorNode;
   mat.emissiveNode = varying(
-    translucency(tinted as unknown as NV3, 0.032) as unknown as Parameters<typeof varying>[0],
+      translucency(tinted as unknown as NV3, 0.032) as unknown as Parameters<typeof varying>[0],
   ) as unknown as typeof mat.emissiveNode;
-  mat.roughness = 0.8; // real leaves keep a little sheen, far less than default
+  mat.roughness = 0.8;
   mat.metalness = 0;
   mat.side = DoubleSide;
   return mat;

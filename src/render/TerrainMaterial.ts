@@ -80,18 +80,18 @@ const uvFromWorld = (p: NV2): NV2 => p.div(WORLD_SIZE).add(0.5);
  * stay smooth under their blade carpet (veg sits on the undisplaced field).
  */
 export const DISP = {
-  base: 0.15,
-  rock: 0.55,
-  gravel: 0.3,
-  fade0: 45,
-  fade1: 85,
+  base: 0.006,
+  rock: 0.03,
+  gravel: 0.018,
+  fade0: 10,
+  fade1: 18,
   sF1: 2.6,
   sF2: 0.9,
   sRid: 1.15,
-  wF1: 0.55,
-  wF2: 0.33,
-  wRid: 0.62,
-  ridBase: 0.25,
+  wF1: 0.42,
+  wF2: 0.24,
+  wRid: 0.38,
+  ridBase: 0.16,
   slopeKnee0: 0.45,
   slopeKnee1: 0.95,
 } as const;
@@ -165,29 +165,29 @@ export function buildTerrainShading(inp: TerrainShadingInputs): TerrainShading {
     .add(valS(74, 0.11, 0.83).mul(3.6))
     .add(valS(540, 0.43, 0.29).mul(2.4))
     .add(valS(27, 0.91, 0.07).mul(1.3)); // fine jitter fragments the bands
-  const strata = band(strataPhase, valS(610, 0.67, 0.41).mul(1.7).add(31.7))
-    .mul(0.36)
-    .add(0.3); // compress contrast — long smooth walls turn 'layer cake' fast
+  const strata = band(strataPhase, valS(610, 0.67, 0.41).mul(1.15).add(31.7))
+    .mul(0.22)
+    .add(0.4);
   // reference peaks are DARK: gray-blue mass with rust faces catching light —
   // pale palettes washed the whole massif into cream at golden hour
-  const alpRock = mix(vec3(0.16, 0.135, 0.125), vec3(0.38, 0.26, 0.18), strata);
-  const karstRock = mix(vec3(0.3, 0.3, 0.29), vec3(0.5, 0.48, 0.44), strata);
-  const genericRock = mix(vec3(0.26, 0.245, 0.225), vec3(0.42, 0.39, 0.35), strata);
+  const alpRock = mix(vec3(0.26, 0.24, 0.22), vec3(0.52, 0.4, 0.26), strata);
+  const karstRock = mix(vec3(0.42, 0.42, 0.38), vec3(0.62, 0.59, 0.5), strata);
+  const genericRock = mix(vec3(0.34, 0.31, 0.27), vec3(0.54, 0.48, 0.38), strata);
   let rockCol = mix(genericRock, karstRock, zm.tKarst);
   rockCol = mix(rockCol, alpRock, zm.tAlp.mul(0.85));
   // iron-oxide bands: dark rust layers at noise-chosen elevations (refs show
   // strong hue layering on alpine faces)
   const ironPhase = band(h.mul(0.011), valS(800, 0.07, 0.93).mul(1.3).add(57.3));
   const ironBand = smoothstep(0.45, 0.62, ironPhase).mul(smoothstep(0.85, 0.62, ironPhase));
-  rockCol = mix(rockCol, vec3(0.3, 0.18, 0.12), ironBand.mul(zm.tAlp.mul(0.6).add(0.12)));
+  rockCol = mix(rockCol, vec3(0.34, 0.23, 0.15), ironBand.mul(zm.tAlp.mul(0.3).add(0.05)));
   // lichen/weathering: dark macro splotches on long-exposed faces
-  const lichen = smoothstep(0.6, 0.85, val(23.7, 0.53, 0.27));
-  rockCol = mix(rockCol, rockCol.mul(0.62), lichen.mul(0.5));
+  const lichen = smoothstep(0.66, 0.86, val(23.7, 0.53, 0.27));
+  rockCol = mix(rockCol, rockCol.mul(0.78), lichen.mul(0.22));
   // cavity dirt: concave-ish micro band darkening
-  rockCol = rockCol.mul(meso.mul(0.22).add(0.89)).mul(micro.mul(0.1).add(0.95));
+  rockCol = rockCol.mul(meso.mul(0.12).add(0.94)).mul(micro.mul(0.04).add(0.98));
 
-  const scree = vec3(0.36, 0.345, 0.325).mul(meso.mul(0.35).add(0.78));
-  const soil = mix(vec3(0.155, 0.12, 0.085), vec3(0.24, 0.195, 0.135), meso).mul(
+  const scree = vec3(0.47, 0.44, 0.37).mul(meso.mul(0.28).add(0.84));
+  const soil = mix(vec3(0.22, 0.17, 0.105), vec3(0.31, 0.245, 0.155), meso).mul(
     micro.mul(0.2).add(0.9),
   );
   // grass field color = the FINAL grass LOD: matched to the blade-ring
@@ -195,41 +195,41 @@ export function buildTerrainShading(inp: TerrainShadingInputs): TerrainShading {
   // dryness, so the geometric grass dissolves into this instead of ending
   // at a visible ring edge ("empty terrain" feedback)
   const patchN = val(1.6, 0.23, 0.77);
-  const grassG = mix(vec3(0.036, 0.094, 0.019), vec3(0.06, 0.13, 0.028), macroA);
-  const grassDry = vec3(0.15, 0.122, 0.052);
+  const grassG = mix(vec3(0.2, 0.31, 0.06), vec3(0.34, 0.48, 0.085), macroA);
+  const grassDry = vec3(0.42, 0.35, 0.1);
   const grassCol = mix(
     grassG,
     grassDry,
-    smoothstep(0.6, 0.92, patchN.mul(0.55).add(macroB.mul(0.45))),
-  ).mul(meso.mul(0.25).add(0.85));
+    smoothstep(0.7, 0.9, patchN.mul(0.7).add(macroB.mul(0.3))),
+  ).mul(meso.mul(0.1).add(0.96));
   // forest floor: litter brown blended w/ moss by moisture
-  const litter = mix(soil, vec3(0.18, 0.15, 0.095), meso);
-  const mossy = vec3(0.11, 0.185, 0.065);
+  const litter = mix(soil, vec3(0.24, 0.2, 0.11), meso.mul(0.45).add(0.24));
+  const mossy = vec3(0.22, 0.31, 0.09);
   const forestFloor = mix(litter, mossy, smoothstep(0.45, 0.8, moisture).mul(0.7));
   // gravel/cobble tint in stream channels
-  const gravel = mix(vec3(0.34, 0.33, 0.31), vec3(0.47, 0.45, 0.43), micro);
+  const gravel = mix(vec3(0.39, 0.37, 0.33), vec3(0.49, 0.46, 0.4), micro.mul(0.55).add(0.22));
   const snowCol = mix(vec3(0.86, 0.88, 0.94), vec3(0.93, 0.95, 0.99), macroA).mul(
     meso.mul(0.08).add(0.95),
   );
 
   // ---------- class weights ------------------------------------------------------
-  const rockW = smoothstep(0.62, 1.15, slope).max(rockExposure.mul(0.85)).toVar();
-  const screeW = smoothstep(0.42, 0.62, slope)
+  const rockW = smoothstep(1.08, 1.3, slope).max(rockExposure.mul(0.12)).toVar();
+  const screeW = smoothstep(0.78, 0.9, slope)
     .mul(smoothstep(1.15, 0.7, slope))
     .mul(smoothstep(380, 700, h))
     .mul(rockW.oneMinus());
-  const grassW = smoothstep(0.5, 0.22, slope)
+  const grassW = smoothstep(1.0, 0.04, slope)
     .mul(vegDensity)
-    .mul(zm.tKarst.mul(0.5).oneMinus())
+    .mul(zm.tKarst.mul(0.22).oneMinus())
     .mul(rockW.oneMinus());
   const forestW = vegDensity
-    .mul(smoothstep(0.9, 0.45, slope))
-    .mul(smoothstep(0.25, 0.6, moisture.add(zm.tKarst.mul(0.3))))
+    .mul(smoothstep(0.98, 0.78, slope))
+    .mul(smoothstep(0.46, 0.8, moisture.add(zm.tKarst.mul(0.12))))
     .mul(rockW.oneMinus());
   // gravel only for REAL channels on open ground: weak-flow rills under
   // grass painted pale streaks down every meadow hillside — those should
   // darken via moisture instead
-  const riverW = smoothstep(0.3, 0.68, flowStrength)
+  const riverW = smoothstep(0.68, 0.92, flowStrength)
     .mul(smoothstep(0.45, 0.2, slope))
     .mul(grassW.mul(0.75).oneMinus());
 
@@ -243,16 +243,16 @@ export function buildTerrainShading(inp: TerrainShadingInputs): TerrainShading {
   // ---------- composite -----------------------------------------------------------
   // standing-water beds (kettle ponds, lake): fine dark silt, not gravel —
   // the real Phase-6 water surface + Beer–Lambert absorption sit above this
-  const pondK = smoothstep(1.1, 2.6, riverDepth).mul(smoothstep(0.3, 0.12, slope));
+  const pondK = smoothstep(2.4, 3.8, riverDepth).mul(smoothstep(0.24, 0.1, slope));
   let col: NV3 = soil;
   col = mix(col, grassCol, grassW);
-  col = mix(col, forestFloor, forestW);
+  col = mix(col, forestFloor, forestW.mul(0.14));
   col = mix(col, scree, screeW);
   col = mix(col, rockCol, rockW);
   col = mix(col, gravel, riverW.mul(0.85).mul(pondK.oneMinus()));
   col = mix(col, vec3(0.055, 0.052, 0.038), pondK);
   col = mix(col, snowCol, snowW);
-  col = col.mul(macroTint.add(1));
+  col = col.mul(macroTint.mul(0.55).add(1));
 
   // feedback 2.8 (splat half): a real grass field is DIRECTIONAL — forward
   // scatter through backlit blades brightens and warms it toward the sun at
@@ -271,34 +271,34 @@ export function buildTerrainShading(inp: TerrainShadingInputs): TerrainShading {
       .mul(smoothstep(0.05, 0.22, sunD.y))
       .mul(smoothstep(60, 220, positionWorld.sub(cameraPosition).length()))
       .mul(0.55);
-    col = col.add(vec3(0.085, 0.1, 0.032).mul(sheenK)) as NV3;
+    col = col.add(vec3(0.18, 0.19, 0.055).mul(sheenK)) as NV3;
   }
 
   // gorge/ravine wall vegetation (scene1: ravine walls are NOT bare — they
   // carry moss bands, hanging greens and ledge clumps). Steep faces in damp
   // valleys grow green in noise pockets: fbm bands read as hanging veg,
   // value-noise pockets as ledge clumps. Karst gorges get the most.
-  const wallK = smoothstep(0.62, 1.0, slope)
-    .mul(smoothstep(0.12, 0.42, moisture.add(riverDepth.mul(2))))
+  const wallK = smoothstep(1.02, 1.1, slope)
+    .mul(smoothstep(0.18, 0.5, moisture.add(riverDepth.mul(1.2))))
     .mul(smoothstep(1350, 700, h))
     .mul(snowW.oneMinus())
     .mul(zm.tKarst.mul(0.45).add(0.55));
-  const wallBands = smoothstep(0.38, 0.72, fbmV(7.3, 0.13, 0.49));
-  const ledgePock = smoothstep(0.45, 0.78, val(2.9, 0.61, 0.07));
+  const wallBands = smoothstep(0.48, 0.7, fbmV(7.3, 0.13, 0.49));
+  const ledgePock = smoothstep(0.54, 0.76, val(2.9, 0.61, 0.07));
   const wallVeg = wallK
-    .mul(wallBands.mul(0.85).add(ledgePock.mul(0.6)))
-    .clamp(0, 0.92);
-  const wallGreen = mix(vec3(0.07, 0.115, 0.04), vec3(0.105, 0.165, 0.05), macroA);
+    .mul(wallBands.mul(0.62).add(ledgePock.mul(0.42)))
+    .clamp(0, 0.72);
+  const wallGreen = mix(vec3(0.13, 0.2, 0.06), vec3(0.19, 0.28, 0.08), macroA);
   col = mix(col, wallGreen, wallVeg);
 
   // wet darkening: river margins, lake shores, marshes
   const shoreWet = smoothstep(LAKE_LEVEL + 2.5, LAKE_LEVEL + 0.3, h);
   const wet = clamp(
-    smoothstep(0.55, 0.95, moisture).mul(0.5).add(riverDepth.mul(2)).add(shoreWet.mul(0.6)),
+    smoothstep(0.82, 0.98, moisture).mul(0.18).add(riverDepth.mul(0.7)).add(shoreWet.mul(0.3)),
     0,
-    0.75,
+    0.52,
   ).mul(snowW.oneMinus());
-  col = col.mul(wet.mul(0.55).oneMinus());
+  col = col.mul(wet.mul(0.35).oneMinus());
 
   // ---------- normal perturbation ---------------------------------------------------
   // far-detail synthesis (Pillar D): serrated normal-domain detail keeps
@@ -311,9 +311,9 @@ export function buildTerrainShading(inp: TerrainShadingInputs): TerrainShading {
   const rg = ridG(310).mul(44 * 2);
   // crag synthesis belongs to ROCK faces — on smooth vegetated hills the
   // ridged gradient field printed parallel pale corrugation streaks
-  const farAmp = smoothstep(0.5, 1.1, slope)
-    .mul(0.4)
-    .add(smoothstep(0.32, 0.7, slope).mul(0.08))
+  const farAmp = smoothstep(1.0, 1.1, slope)
+    .mul(0.03)
+    .add(smoothstep(0.82, 0.94, slope).mul(0.004))
     .mul(farK);
   // never let detail flip the surface away from the sky
   const perturbed = baseNormal.add(vec3(rg.x, 0, rg.y).mul(farAmp));
@@ -324,7 +324,7 @@ export function buildTerrainShading(inp: TerrainShadingInputs): TerrainShading {
     // gradients at two scales (×2e ≈ old FD amplitudes, ×2 range factor)
     const b1 = fbmG(1.45).mul(1.8 * 2);
     const b2 = fbmG(0.19, 0.31, 0.77).mul(0.24 * 2);
-    const bumpAmp = mix(float(0.25), float(0.85), rockW)
+    const bumpAmp = mix(float(0.02), float(0.07), rockW)
       .mul(snowW.mul(0.7).oneMinus())
       .mul(farK.oneMinus());
     nrm = nrm

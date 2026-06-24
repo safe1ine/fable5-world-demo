@@ -390,13 +390,13 @@ export async function runScatter(
     If(s.h.lessThan(LAKE_LEVEL + 0.4), () => {
       Return();
     });
-    If(s.riverDepth.greaterThan(0.22).or(s.standing.greaterThan(0.3)), () => {
+    If(s.riverDepth.greaterThan(0.12).or(s.standing.greaterThan(0.16)), () => {
       Return();
     });
 
     const clump = clumpField(wpos, sT ^ 0x51f3);
-    const dens = byBiome(s.bioId, [0, 0.22, 0.8, 0.85, 0.06, 0.26]);
-    const clumpFloor = byBiome(s.bioId, [0, 0.15, 0.3, 0.35, 0.04, 0.12]);
+    const dens = byBiome(s.bioId, [0, 0.006, 0.014, 0.016, 0.003, 0.005]);
+    const clumpFloor = byBiome(s.bioId, [0, 0.005, 0.012, 0.014, 0.002, 0.004]);
     const slopeFade = float(1).sub(smoothstep(0.5, 0.95, s.slope));
     const treelineFade = float(1).sub(
       smoothstep(TREELINE - 110, TREELINE + 50, s.h),
@@ -415,17 +415,17 @@ export async function runScatter(
 
     // species weights: per-biome table × moisture response
     const m = s.moisture;
-    const w0 = byBiome(s.bioId, [0, 0.6, 0.58, 0.07, 0.05, 0.12]) // spruce
+    const w0 = byBiome(s.bioId, [0, 0.03, 0.02, 0.005, 0.004, 0.01]) // spruce
       .mul(m.mul(0.5).add(0.75));
-    const w1 = byBiome(s.bioId, [0, 0.22, 0.27, 0.02, 0.15, 0]) // pine
+    const w1 = byBiome(s.bioId, [0, 0.68, 0.52, 0.12, 0.28, 0.03]) // pine
       .mul(float(1.45).sub(m.mul(0.9)));
-    const w2 = byBiome(s.bioId, [0, 0, 0.02, 0.5, 0.42, 0.05]) // beech
+    const w2 = byBiome(s.bioId, [0, 0, 0.005, 0.03, 0.04, 0.01]) // beech
       .mul(m.mul(0.9).add(0.55));
-    const w3 = byBiome(s.bioId, [0, 0.03, 0.08, 0.16, 0.3, 0.55]) // birch
+    const w3 = byBiome(s.bioId, [0, 0.07, 0.12, 0.11, 0.2, 0.36]) // birch
       .mul(m.mul(0.6).add(0.7));
-    const w4 = byBiome(s.bioId, [0, 0, 0, 0.2, 0, 0]) // karst gnarl
+    const w4 = byBiome(s.bioId, [0, 0, 0, 0.02, 0, 0]) // karst gnarl
       .mul(s.rockExp.mul(1.6).add(0.4));
-    const w5 = byBiome(s.bioId, [0, 0.15, 0.05, 0.05, 0.08, 0.28]); // snag
+    const w5 = byBiome(s.bioId, [0, 0.015, 0.01, 0.01, 0.015, 0.03]); // snag
 
     const r = cellHash(cell, sT ^ 0x77e1).mul(
       w0.add(w1).add(w2).add(w3).add(w4).add(w5),
@@ -505,13 +505,13 @@ export async function runScatter(
     If(s.h.lessThan(LAKE_LEVEL + 0.35), () => {
       Return();
     });
-    If(s.riverDepth.greaterThan(0.2).or(s.standing.greaterThan(0.3)), () => {
+    If(s.riverDepth.greaterThan(0.12).or(s.standing.greaterThan(0.16)), () => {
       Return();
     });
 
     // canopy proxy = the TREE clump field (same salt → same parents)
     const canopy = clumpField(wpos, sT ^ 0x51f3);
-    const dens = byBiome(s.bioId, [0, 0.25, 0.55, 0.6, 0.55, 0.45]);
+    const dens = byBiome(s.bioId, [0, 0.015, 0.03, 0.034, 0.02, 0.02]);
     const slopeFade = float(1).sub(smoothstep(0.55, 0.9, s.slope));
     const treelineFade = float(1).sub(
       smoothstep(TREELINE - 40, TREELINE + 140, s.h),
@@ -528,18 +528,18 @@ export async function runScatter(
 
     const m = s.moisture;
     const edge = canopy.mul(float(1).sub(canopy)).mul(4); // 1 at clump rims
-    const w0 = byBiome(s.bioId, [0, 0.05, 0.15, 0.3, 0.04, 0.1]); // hazel
-    const w1 = byBiome(s.bioId, [0, 0, 0.02, 0.12, 0.1, 0.02]) // pink shrub
+    const w0 = byBiome(s.bioId, [0, 0.008, 0.015, 0.03, 0.004, 0.012]); // hazel
+    const w1 = byBiome(s.bioId, [0, 0.02, 0.04, 0.05, 0.035, 0.02]) // pink shrub
       .mul(edge.mul(1.3).add(0.2));
-    const w2 = byBiome(s.bioId, [0, 0.55, 0.3, 0.02, 0.03, 0]) // juniper
+    const w2 = byBiome(s.bioId, [0, 0.03, 0.025, 0.005, 0.01, 0]) // juniper
       .mul(float(1.3).sub(m.mul(0.8)));
-    const w3 = byBiome(s.bioId, [0, 0.1, 0.4, 0.38, 0.03, 0.5]) // fern
+    const w3 = byBiome(s.bioId, [0, 0.004, 0.02, 0.018, 0.004, 0.03]) // fern
       .mul(m.mul(1.1).add(0.3))
       .mul(canopy.mul(1.1).add(0.35));
-    const gapK = float(1.25).sub(canopy.mul(0.9));
-    const w4 = byBiome(s.bioId, [0, 0.1, 0.05, 0.06, 0.3, 0.2]).mul(gapK); // umbel
-    const w5 = byBiome(s.bioId, [0, 0.08, 0.04, 0.06, 0.22, 0.1]).mul(gapK); // bell
-    const w6 = byBiome(s.bioId, [0, 0.12, 0.04, 0.06, 0.28, 0.08]).mul(gapK); // daisy
+    const gapK = float(1.62).sub(canopy.mul(1.1));
+    const w4 = byBiome(s.bioId, [0, 0.42, 0.24, 0.18, 0.5, 0.42]).mul(gapK); // umbel
+    const w5 = byBiome(s.bioId, [0, 0.28, 0.15, 0.12, 0.34, 0.2]).mul(gapK); // bell
+    const w6 = byBiome(s.bioId, [0, 0.46, 0.24, 0.18, 0.54, 0.2]).mul(gapK); // daisy
 
     const r = cellHash(cell, sU ^ 0x59d3).mul(
       w0.add(w1).add(w2).add(w3).add(w4).add(w5).add(w6),
@@ -607,12 +607,12 @@ export async function runScatter(
     If(s.h.lessThan(LAKE_LEVEL + 0.3), () => {
       Return();
     });
-    If(s.riverDepth.greaterThan(0.3).or(s.standing.greaterThan(0.35)), () => {
+    If(s.riverDepth.greaterThan(0.16).or(s.standing.greaterThan(0.18)), () => {
       Return();
     });
 
     const canopy = clumpField(wpos, sT ^ 0x51f3);
-    const forestK = byBiome(s.bioId, [0, 0.3, 1, 1, 0.25, 0.6]).mul(
+    const forestK = byBiome(s.bioId, [0, 0.025, 0.05, 0.06, 0.02, 0.035]).mul(
       canopy.mul(0.7).add(0.3),
     );
     const m = s.moisture;
@@ -621,7 +621,7 @@ export async function runScatter(
     const w2 = s.rockExp.mul(1.1).add(0.12).mul(0.42); // boulder
     const w3 = s.rockExp.mul(0.9).mul(0.2); // slab
 
-    const dens = byBiome(s.bioId, [0.08, 0.25, 0.62, 0.65, 0.22, 0.5]);
+    const dens = byBiome(s.bioId, [0.018, 0.03, 0.05, 0.055, 0.05, 0.05]);
     const slopeFade = float(1).sub(smoothstep(0.55, 1.1, s.slope));
     const wSum = w0.add(w1).add(w2).add(w3);
     const accept = dens.mul(slopeFade).mul(wSum.min(1));
@@ -720,7 +720,7 @@ export async function runScatter(
     If(s.h.lessThan(LAKE_LEVEL + 0.25), () => {
       Return();
     });
-    If(s.standing.greaterThan(0.5), () => {
+    If(s.standing.greaterThan(0.2), () => {
       Return();
     });
 
@@ -744,12 +744,12 @@ export async function runScatter(
     // (real scree is patchy and size-mixed, never uniform speckle)
     const patch = clumpField(wpos, sS ^ 0x77aa).mul(0.78).add(0.22);
     const scree = smoothstep(0.42, 0.8, s.slope);
-    const stoneBase = byBiome(s.bioId, [0.55, 0.4, 0.26, 0.32, 0.14, 0.18])
+    const stoneBase = byBiome(s.bioId, [0.08, 0.07, 0.05, 0.055, 0.045, 0.05])
       .mul(
         s.rockExp
           .mul(0.85)
           .add(scree.mul(0.85))
-          .add(streamK.mul(1.5))
+          .add(streamK.mul(0.75))
           .add(cliffAbove.mul(1.15))
           .add(0.16),
       )
@@ -759,8 +759,8 @@ export async function runScatter(
     // branches need ground that holds them — steep bare slopes grew
     // floating white sticks (user-visible artifact)
     const branchFlat = float(1).sub(smoothstep(0.45, 0.75, s.slope));
-    const branchW = canopy.mul(0.6).mul(
-      byBiome(s.bioId, [0, 0.2, 1, 1, 0.3, 0.7]),
+    const branchW = canopy.mul(0.08).mul(
+      byBiome(s.bioId, [0, 0.025, 0.05, 0.06, 0.02, 0.035]),
     ).mul(branchFlat);
     const accept = stoneBase.add(branchW).min(1);
     If(cellHash(cell, sS ^ 0x71f1).greaterThanEqual(accept), () => {

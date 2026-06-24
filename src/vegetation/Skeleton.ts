@@ -25,14 +25,14 @@ function crownEnvelope(shape: CrownShape, t: number, rng: Rng): number {
   switch (shape) {
     case 'cone':
       // longest near the base of the crown, tapering to the leader
-      return 0.18 + 0.82 * Math.pow(1 - t, 0.9);
+      return 0.28 + 0.78 * Math.pow(1 - t, 0.68);
     case 'ellipsoid':
-      return Math.max(0.12, Math.sin(Math.PI * (0.08 + 0.88 * t)));
+      return Math.max(0.42, Math.pow(Math.sin(Math.PI * (0.06 + 0.88 * t)), 0.5));
     case 'dome':
       // flat-bottomed dome: long low arms, shorter top
-      return Math.max(0.15, Math.sqrt(Math.max(0, 1 - t * t * 0.92)));
+      return Math.max(0.44, Math.pow(Math.max(0, 1 - t * t * 0.72), 0.28));
     case 'column':
-      return 0.55 + 0.45 * Math.sin(Math.PI * Math.min(1, t * 1.15));
+      return 0.8 + 0.28 * Math.sin(Math.PI * Math.min(1, t * 1.04));
     case 'irregular':
       return 0.3 + 0.7 * Math.abs(Math.sin(t * 9.7 + rng.float() * 6.28)) * (1 - t * 0.4);
   }
@@ -267,7 +267,7 @@ function growBranch(ctx: GrowCtx, spec: BranchSpec): SkelBranch | null {
       q.premultiply(qTilt);
       const sc =
         (fol.scale[0] + rng.float() * (fol.scale[1] - fol.scale[0])) *
-        (terminal ? 0.85 : 0.72 + t * 0.42);
+        (terminal ? 1.04 : 0.96 + t * 0.28);
       ctx.anchors.push({
         pos: aPos.clone().addScaledVector(out, sc * 0.06),
         quat: q.clone(),

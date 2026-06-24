@@ -34,7 +34,7 @@ export function grassBladeGeometry(SEG = 4): BufferGeometry {
   const nrm: number[] = [];
   const uvA: number[] = [];
   const idx: number[] = [];
-  const W = 0.014;
+  const W = 0.028;
   const H = 1; // unit height; instance scales
   // rounded cross-section normals (Ghost of Tsushima): edge verts tilt
   // ±38° around the blade axis so the strip shades like a half-cylinder
