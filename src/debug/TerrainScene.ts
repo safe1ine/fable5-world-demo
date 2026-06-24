@@ -7,6 +7,8 @@
  * ?alt=N puts the camera N meters above ground (ground-clamped spawn).
  */
 
+import { AnimationMixer, Box3, Group, Mesh, Vector3 } from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { BOOKMARKS, installBookmarks } from './Bookmarks';
 import { Froxels } from '../gpu/passes/Froxels';
 import { PARTICLE_COUNT, Particles } from '../gpu/passes/Particles';
@@ -289,10 +291,60 @@ export async function buildTerrainScene(ctx: WorldContext): Promise<void> {
     }
   }
 
+  await addTrexModel(engine, hf, ctx.hooks.initialPose?.p ?? null);
+
   // composed bookmarks (keys 1-9, ?shot=N) + 92 s flythrough (?fly=1 / F)
   installBookmarks(engine, hf, ctx.hooks, params);
 
   ctx.progress(1, 'terrain ready');
+}
+
+async function addTrexModel(
+  engine: WorldContext['engine'],
+  hf: Heightfield,
+  initialPose: [number, number, number] | null,
+): Promise<void> {
+  const loader = new GLTFLoader();
+  const gltf = await loader.loadAsync('/models/trex.glb');
+  const root = gltf.scene;
+  root.updateMatrixWorld(true);
+
+  const box = new Box3().setFromObject(root);
+  const size = box.getSize(new Vector3());
+  const center = box.getCenter(new Vector3());
+  const baseY = box.min.y;
+  const maxDim = Math.max(size.x, size.y, size.z, 1e-3);
+  const scale = 9 / maxDim;
+
+  const spawn = initialPose
+    ? { x: initialPose[0] + 22, z: initialPose[2] - 10 }
+    : { x: 18, z: -12 };
+  const ground = hf.heightAtCpu(spawn.x, spawn.z);
+
+  const anchor = new Group();
+  anchor.position.set(spawn.x, ground, spawn.z);
+  anchor.rotation.y = Math.PI * 0.72;
+  root.position.set(-center.x * scale, -baseY * scale, -center.z * scale);
+  root.scale.setScalar(scale);
+
+  root.traverse((obj) => {
+    if (obj instanceof Mesh) {
+      obj.castShadow = true;
+      obj.receiveShadow = true;
+      obj.frustumCulled = true;
+    }
+  });
+
+  anchor.add(root);
+  engine.scene.add(anchor);
+
+  if (gltf.animations.length > 0) {
+    const mixer = new AnimationMixer(root);
+    for (const clip of gltf.animations) {
+      mixer.clipAction(clip).play();
+    }
+    engine.onUpdate((dt) => mixer.update(dt));
+  }
 }
 
 /**

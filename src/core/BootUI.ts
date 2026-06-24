@@ -23,7 +23,7 @@ export class BootUI {
   }
 
   hide(): void {
-    this.set(1, 'ready');
+    this.set(1, '侏罗纪世界已就绪');
     if (this.root) {
       this.root.style.opacity = '0';
       const el = this.root;
