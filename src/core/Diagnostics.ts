@@ -45,7 +45,7 @@ export async function probeWebGPU(): Promise<GpuDiagnostics> {
   if (!('gpu' in navigator) || !navigator.gpu) {
     return {
       ok: false,
-      reason: 'navigator.gpu is missing — this browser has no WebGPU. Use Chrome 113+.',
+        reason: 'navigator.gpu 不存在：当前浏览器没有 WebGPU。请使用 Chrome 113+。',
       features: [],
       limits: {},
     };
@@ -56,7 +56,7 @@ export async function probeWebGPU(): Promise<GpuDiagnostics> {
   } catch (e) {
     return {
       ok: false,
-      reason: `requestAdapter threw: ${e instanceof Error ? e.message : String(e)}`,
+        reason: `requestAdapter 抛出异常：${e instanceof Error ? e.message : String(e)}`,
       features: [],
       limits: {},
     };
@@ -64,8 +64,8 @@ export async function probeWebGPU(): Promise<GpuDiagnostics> {
   if (!adapter) {
     return {
       ok: false,
-      reason:
-        'requestAdapter returned null — WebGPU present but no adapter. If headless, check launch flags (e.g. --enable-unsafe-webgpu, ANGLE backend).',
+        reason:
+          'requestAdapter 返回了 null：说明有 WebGPU 接口，但没有可用适配器。如果是无头环境，请检查启动参数（例如 --enable-unsafe-webgpu、ANGLE backend）。',
       features: [],
       limits: {},
     };
@@ -93,7 +93,7 @@ let failShown = false;
 export function failLoud(title: string, details: string[]): void {
   if (window.__laas) window.__laas.error = `${title}\n${details.join('\n')}`;
   // eslint-disable-next-line no-console
-  console.error('[LAAS FATAL]', title, details);
+  console.error('[JURASSIC WORLD FATAL]', title, details);
   if (failShown) return;
   failShown = true;
 

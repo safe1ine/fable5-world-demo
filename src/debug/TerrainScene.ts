@@ -9,6 +9,7 @@
 
 import { AnimationMixer, Box3, Group, Mesh, Vector3 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { clone as cloneSkeleton } from 'three/addons/utils/SkeletonUtils.js';
 import { BOOKMARKS, installBookmarks } from './Bookmarks';
 import { Froxels } from '../gpu/passes/Froxels';
 import { PARTICLE_COUNT, Particles } from '../gpu/passes/Particles';
@@ -56,7 +57,7 @@ export async function buildTerrainScene(ctx: WorldContext): Promise<void> {
   // ?shot=N boots straight into a composed bookmark — use ITS time of day
   const bootBm = params.shot !== null ? BOOKMARKS[params.shot - 1] : undefined;
   const bootTod = bootBm?.tod ?? params.timeOfDay;
-  ctx.progress(0.93, 'sky: baking atmosphere LUTs');
+  ctx.progress(0.93, '天空：正在烘焙大气查找表');
   const sunSky = new SunSky(engine, bootTod);
   await sunSky.init(engine.renderer);
   (engine as unknown as { sunSky?: SunSky }).sunSky = sunSky;
@@ -67,7 +68,7 @@ export async function buildTerrainScene(ctx: WorldContext): Promise<void> {
   // canopy coverage map — BEFORE the probe field (probes ray-march the bare
   // heightfield; the canopy map is their only knowledge of the forest) and
   // before tiles (under-crown ambient)
-  ctx.progress(0.94, 'vegetation: scattering instances');
+  ctx.progress(0.94, '植被：正在散布实例');
   const scatter = await runScatter(engine.renderer, hf, seed);
   const canopyTex = await buildCanopyMap(engine.renderer, scatter.trees);
   engine.stats.counters['veg.trees'] = scatter.trees.count;
@@ -81,7 +82,7 @@ export async function buildTerrainScene(ctx: WorldContext): Promise<void> {
 
   // irradiance probe field (Phase 3 GI; canopy-aware since Phase 5 —
   // ?ablate=canopygi rebuilds the bare-heightfield field for A/B)
-  ctx.progress(0.95, 'gi: gathering irradiance probes');
+  ctx.progress(0.95, '全局光照：正在采集辐照探针');
   const gi = new ProbeGI(
     hf,
     sunSky.atmosphere,
@@ -115,7 +116,7 @@ export async function buildTerrainScene(ctx: WorldContext): Promise<void> {
     }
   }
 
-  ctx.progress(0.958, 'terrain: building tiles');
+  ctx.progress(0.958, '地形：正在构建瓦片');
   const view = new URLSearchParams(window.location.search).get('view');
   if (view === 'scatter') addScatterDebug(engine.scene, scatter);
   if (view === 'split' && hf.preErosion) {
@@ -195,7 +196,7 @@ export async function buildTerrainScene(ctx: WorldContext): Promise<void> {
   }
 
   // volumetric clouds (noise bake + sun-shadow map)
-  ctx.progress(0.97, 'sky: baking cloud noise');
+  ctx.progress(0.97, '天空：正在烘焙云层噪声');
   const clouds = new Clouds(sunSky.atmosphere);
   await clouds.init(engine.renderer);
   // weather motion (Pillar F): drift on WORLD time so ?freeze=1 shots stay
@@ -237,7 +238,7 @@ export async function buildTerrainScene(ctx: WorldContext): Promise<void> {
   }
 
   // HDR post stack: aerial perspective, clouds, GTAO, TRAA, bloom, exposure, grade
-  ctx.progress(0.98, 'post: building pipeline');
+  ctx.progress(0.98, '后处理：正在构建渲染管线');
   const post = new PostStack(engine, sunSky.atmosphere, bootTod, clouds, froxels);
   engine.post = post;
 
@@ -291,59 +292,93 @@ export async function buildTerrainScene(ctx: WorldContext): Promise<void> {
     }
   }
 
-  await addTrexModel(engine, hf, ctx.hooks.initialPose?.p ?? null);
+  await addTrexHerd(engine, hf, seed, ctx.hooks.initialPose?.p ?? null);
 
   // composed bookmarks (keys 1-9, ?shot=N) + 92 s flythrough (?fly=1 / F)
   installBookmarks(engine, hf, ctx.hooks, params);
 
-  ctx.progress(1, 'terrain ready');
+  ctx.progress(1, '草原场景已就绪');
 }
 
-async function addTrexModel(
+async function addTrexHerd(
   engine: WorldContext['engine'],
   hf: Heightfield,
+  seed: WorldContext['seed'],
   initialPose: [number, number, number] | null,
 ): Promise<void> {
   const loader = new GLTFLoader();
   const gltf = await loader.loadAsync('/models/trex.glb');
-  const root = gltf.scene;
-  root.updateMatrixWorld(true);
+  const template = gltf.scene;
+  template.updateMatrixWorld(true);
 
-  const box = new Box3().setFromObject(root);
+  const box = new Box3().setFromObject(template);
   const size = box.getSize(new Vector3());
   const center = box.getCenter(new Vector3());
   const baseY = box.min.y;
   const maxDim = Math.max(size.x, size.y, size.z, 1e-3);
-  const scale = 9 / maxDim;
+  const baseScale = 9 / maxDim;
 
-  const spawn = initialPose
+  const centerSpawn = initialPose
     ? { x: initialPose[0] + 22, z: initialPose[2] - 10 }
     : { x: 18, z: -12 };
-  const ground = hf.heightAtCpu(spawn.x, spawn.z);
-
-  const anchor = new Group();
-  anchor.position.set(spawn.x, ground, spawn.z);
-  anchor.rotation.y = Math.PI * 0.72;
-  root.position.set(-center.x * scale, -baseY * scale, -center.z * scale);
-  root.scale.setScalar(scale);
-
-  root.traverse((obj) => {
-    if (obj instanceof Mesh) {
-      obj.castShadow = true;
-      obj.receiveShadow = true;
-      obj.frustumCulled = true;
+  const rng = seed.rng('trex/herd');
+  const herdCount = 26;
+  const placements: { x: number; z: number; scale: number; yaw: number }[] = [];
+  let attempts = 0;
+  while (placements.length < herdCount && attempts < herdCount * 30) {
+    attempts++;
+    const radius = 10 + rng.float() * 72;
+    const angle = rng.float() * Math.PI * 2;
+    const x = centerSpawn.x + Math.cos(angle) * radius;
+    const z = centerSpawn.z + Math.sin(angle) * radius;
+    const ground = hf.heightAtCpu(x, z);
+    if (hf.waterYAtCpu(x, z) > ground - 0.05) continue;
+    const sx = hf.heightAtCpu(x + 6, z) - hf.heightAtCpu(x - 6, z);
+    const sz = hf.heightAtCpu(x, z + 6) - hf.heightAtCpu(x, z - 6);
+    if (Math.hypot(sx, sz) / 12 > 0.22) continue;
+    let tooClose = false;
+    for (const p of placements) {
+      if (Math.hypot(p.x - x, p.z - z) < 10) {
+        tooClose = true;
+        break;
+      }
     }
-  });
+    if (tooClose) continue;
+    placements.push({
+      x,
+      z,
+      scale: baseScale * (0.72 + rng.float() * 0.95),
+      yaw: rng.float() * Math.PI * 2,
+    });
+  }
 
-  anchor.add(root);
-  engine.scene.add(anchor);
+  for (const p of placements) {
+    const root = cloneSkeleton(template);
+    const ground = hf.heightAtCpu(p.x, p.z);
+    const anchor = new Group();
+    anchor.position.set(p.x, ground, p.z);
+    anchor.rotation.y = p.yaw;
+    root.position.set(-center.x * p.scale, -baseY * p.scale, -center.z * p.scale);
+    root.scale.setScalar(p.scale);
 
-  if (gltf.animations.length > 0) {
-    const mixer = new AnimationMixer(root);
-    for (const clip of gltf.animations) {
-      mixer.clipAction(clip).play();
+    root.traverse((obj) => {
+      if (obj instanceof Mesh) {
+        obj.castShadow = true;
+        obj.receiveShadow = true;
+        obj.frustumCulled = true;
+      }
+    });
+
+    anchor.add(root);
+    engine.scene.add(anchor);
+
+    if (gltf.animations.length > 0) {
+      const mixer = new AnimationMixer(root);
+      for (const clip of gltf.animations) {
+        mixer.clipAction(clip).play();
+      }
+      engine.onUpdate((dt) => mixer.update(dt));
     }
-    engine.onUpdate((dt) => mixer.update(dt));
   }
 }
 

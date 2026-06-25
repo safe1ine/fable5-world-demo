@@ -196,7 +196,7 @@ export class FlyCamera {
     if (mode === 'walk') {
       if (!this.groundProbe) {
         // eslint-disable-next-line no-console
-        console.warn('[laas] walk mode unavailable — no terrain in this scene');
+        console.warn('[jurassic-world] walk mode unavailable — no terrain in this scene');
         return;
       }
       this.basePos.copy(this.camera.position);
@@ -214,7 +214,7 @@ export class FlyCamera {
     this.applyRotation(0);
     this.camera.updateMatrixWorld();
     // eslint-disable-next-line no-console
-    console.log(`[laas] camera mode: ${mode} (V toggles)`);
+    console.log(`[jurassic-world] camera mode: ${mode} (V toggles)`);
   }
 
   /**

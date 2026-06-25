@@ -1,4 +1,4 @@
-/** LAAS entry point — boot sequence with fail-loud diagnostics. */
+/** 侏罗纪世界入口 — 带 fail-loud 诊断的启动流程。 */
 
 import { BootUI } from './core/BootUI';
 import { browserGate } from './core/BrowserGate';
@@ -29,24 +29,25 @@ async function boot(): Promise<void> {
   const params = parseParams();
   const bootUI = new BootUI(hooks);
 
-  bootUI.set(0.02, 'probing WebGPU');
+  bootUI.set(0.02, '正在检测 WebGPU');
   const diag = await probeWebGPU();
   hooks.diag = diag;
   if (!diag.ok) {
-    failLoud('WebGPU unavailable — LAAS has no fallback by design', [
+    failLoud('WebGPU unavailable — 侏罗纪世界按设计不提供回退方案', [
       diag.reason ?? 'unknown reason',
       '',
-      'Chrome exposes WebGPU here, but no usable GPU adapter came up. Check:',
-      '  • chrome://gpu — WebGPU should read “Hardware accelerated”',
-      '  • Settings → System → hardware acceleration ON, then relaunch',
-      '  • update Chrome and the GPU driver',
+      '这里的 Chrome 虽然暴露了 WebGPU，但没有拿到可用的 GPU 适配器。',
+      '可以检查：',
+      '  • 打开 chrome://gpu，确认 WebGPU 显示为“Hardware accelerated”',
+      '  • 设置 → 系统 → 打开硬件加速后重启浏览器',
+      '  • 更新 Chrome 和显卡驱动',
     ]);
     return;
   }
   // eslint-disable-next-line no-console
-  console.log('[laas] webgpu ok\n' + describeDiagnostics(diag).join('\n'));
+  console.log('[jurassic-world] webgpu ok\n' + describeDiagnostics(diag).join('\n'));
 
-  bootUI.set(0.08, 'creating renderer');
+  bootUI.set(0.08, '正在创建渲染器');
   const engine = await Engine.create(params, hooks);
 
   // FlyCamera's update MUST register before any scene system: updateFns run
@@ -102,10 +103,10 @@ async function boot(): Promise<void> {
   bootUI.hide();
   hooks.ready = true;
   // eslint-disable-next-line no-console
-  console.log('[laas] ready');
+  console.log('[jurassic-world] ready');
 }
 
 boot().catch((e: unknown) => {
   const msg = e instanceof Error ? `${e.message}\n\n${e.stack ?? ''}` : String(e);
-  failLoud('Boot failed', [msg]);
+  failLoud('启动失败', [msg]);
 });

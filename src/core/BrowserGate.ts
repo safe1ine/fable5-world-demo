@@ -3,18 +3,13 @@
  * unsupported setups get a clear message instead of a broken boot screen.
  *
  * Order of checks:
- *  1. mobile/tablet → recommend a computer. Detection is capability/UA
- *     based, never screen size: UA-Client-Hints `userAgentData.mobile`
- *     where present, classic UA markers otherwise, plus the iPadOS
- *     masquerade (iPads report a desktop macOS UA; multi-touch on "Mac"
- *     exposes them).
- *  2. non-Chromium browser → Chrome required. The engine is built and
+ *  1. non-Chromium browser → Chrome required. The engine is built and
  *     tested exclusively against Chrome's WebGPU; Safari/Firefox coverage
  *     of the features used here is incomplete (user-verified: neither
  *     boots). Brand list from UA-CH when present (covers Chrome, Edge,
  *     Brave, Arc, Opera), "Chrome/" UA token as the fallback —
  *     HeadlessChrome passes both, so the Playwright tooling is unaffected.
- *  3. Chromium but `navigator.gpu` missing → the standard tactic: there
+ *  2. Chromium but `navigator.gpu` missing → the standard tactic: there
  *     is no fallback, so give the actionable checklist (update, hardware
  *     acceleration, chrome://gpu).
  *
@@ -35,18 +30,6 @@ function clientHints(): UAClientHints | undefined {
   return (navigator as { userAgentData?: UAClientHints }).userAgentData;
 }
 
-/** phone/tablet detection — capability + UA based, never screen metrics */
-export function isMobileDevice(): boolean {
-  if (clientHints()?.mobile === true) return true;
-  const ua = navigator.userAgent;
-  // Android tablets drop "Mobile" but keep "Android"; Kindle = Silk
-  if (/Android|iPhone|iPod|iPad|Windows Phone|IEMobile|Silk|Mobile/i.test(ua)) return true;
-  // iPadOS 13+ masquerades as desktop macOS ("Macintosh" UA) — multi-touch
-  // gives it away; real Macs report 0 touch points
-  if (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 2) return true;
-  return false;
-}
-
 /** Chrome or any Chromium-based browser (Edge, Brave, Arc, Opera, ...) */
 export function isChromiumBrowser(): boolean {
   const brands = clientHints()?.brands;
@@ -62,38 +45,27 @@ export function isChromiumBrowser(): boolean {
 export function browserGate(): boolean {
   if (new URLSearchParams(window.location.search).get('nogate') === '1') return true;
 
-  if (isMobileDevice()) {
-    failLoud('A computer is required', [
-      'LAAS pushes desktop-class GPU work through WebGPU — phone and tablet',
-      'browsers are not supported.',
-      '',
-      'Please revisit from a desktop or laptop running Google Chrome.',
-    ]);
-    return false;
-  }
-
   if (!isChromiumBrowser()) {
     failLoud('Google Chrome is required', [
-      'LAAS is built and tested against Chrome’s WebGPU implementation.',
-      'Safari and Firefox currently cannot run it.',
+      '侏罗纪世界基于 Chrome 的 WebGPU 实现构建和验证。',
+      'Safari 和 Firefox 当前无法正常运行。',
       '',
-      'Please open this page in Google Chrome 113 or newer.',
-      'Chromium-based browsers (Edge, Brave, Arc, Opera) should also work.',
+      '请使用 Google Chrome 113 或更高版本打开此页面。',
+      'Chromium 内核浏览器（Edge、Brave、Arc、Opera）通常也可以运行。',
     ]);
     return false;
   }
 
   if (!('gpu' in navigator) || !navigator.gpu) {
     failLoud('WebGPU is unavailable in this browser', [
-      'You are on a Chromium browser, but it does not expose WebGPU.',
+      '当前浏览器虽然是 Chromium 内核，但没有提供 WebGPU。',
       '',
-      'Things to check:',
-      '  • Update Chrome — WebGPU needs version 113 or newer.',
-      '  • Settings → System → “Use hardware acceleration” must be ON',
-      '    (relaunch after changing it).',
-      '  • chrome://gpu should list WebGPU as “Hardware accelerated”.',
-      '  • On Linux, recent Chrome may need chrome://flags/#enable-vulkan',
-      '    or launching with --enable-features=Vulkan.',
+      '可以检查以下项目：',
+      '  • 更新 Chrome，WebGPU 需要 113 或更高版本。',
+      '  • 设置 → 系统 → 打开“使用硬件加速”，然后重新启动浏览器。',
+      '  • 打开 chrome://gpu，确认 WebGPU 显示为“Hardware accelerated”。',
+      '  • Linux 上的新版本 Chrome 可能需要开启',
+      '    chrome://flags/#enable-vulkan 或使用 --enable-features=Vulkan 启动。',
     ]);
     return false;
   }

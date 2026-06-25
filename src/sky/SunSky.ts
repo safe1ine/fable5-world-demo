@@ -52,7 +52,7 @@ export class SunSky {
         const step = e.code === 'BracketLeft' ? -0.5 : 0.5;
         void this.setTimeOfDay((this.timeOfDay + step + 24) % 24);
         // eslint-disable-next-line no-console
-        console.log(`[laas] T=${this.timeOfDay.toFixed(2)}`);
+        console.log(`[jurassic-world] T=${this.timeOfDay.toFixed(2)}`);
       }
     });
   }

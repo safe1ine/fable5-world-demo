@@ -129,13 +129,13 @@ export async function buildVegLibrary(
   progress: (p: number, msg: string) => void = () => {},
 ): Promise<VegLib> {
   // ---- shared captures -------------------------------------------------------
-  progress(0, 'veg: capturing foliage atlases');
+  progress(0, '植被：正在捕获叶片图集');
   const atlases = new Map<string, DataTexture>();
   for (const sp of [...TREE_SPECIES, ...UNDERSTORY_SPECIES, FERN_CAPTURE]) {
     if (!sp.foliage || atlases.has(sp.id)) continue;
     atlases.set(sp.id, await captureFoliageAtlas(renderer, sp, seed.rng(`cards/${sp.id}`)));
   }
-  progress(0.2, 'veg: baking bark textures');
+  progress(0.2, '植被：正在烘焙树皮纹理');
   const barks = new Map<number, BarkTextures>();
   const layers = new Set<number>([...TREE_SPECIES.map((s) => s.barkLayer), 2, 5]);
   for (const layer of layers) {
@@ -157,7 +157,7 @@ export async function buildVegLibrary(
   };
 
   // ---- trees: 6 species × 4 variants × (R1 cards, R2 branch-cards) ----------
-  progress(0.3, 'veg: growing tree variant pools');
+  progress(0.3, '植被：正在生成树木变体池');
   const treeParts = (sp: SpeciesParams, t: ReturnType<typeof buildTree>): PoolPart[] => {
     const parts: PoolPart[] = [
       {
@@ -223,11 +223,11 @@ export async function buildVegLibrary(
       });
     }
     clsMaxDist[ci] = 1e8; // trees continue as impostors
-    progress(0.3 + 0.25 * ((ci + 1) / TREE_SPECIES.length), `veg: ${sp.id} pool`);
+    progress(0.3 + 0.25 * ((ci + 1) / TREE_SPECIES.length), `植被：正在生成 ${sp.id} 资源池`);
   }
 
   // ---- tree impostors (variant 0 R1 geometry, relightable octahedral) -------
-  progress(0.56, 'veg: capturing octahedral impostors');
+  progress(0.56, '植被：正在捕获八面体 impostor');
   const impostors = new Map<number, ImpostorAtlas>();
   for (let ci = 0; ci < TREE_SPECIES.length; ci++) {
     const sp = TREE_SPECIES[ci] as SpeciesParams;
@@ -249,11 +249,11 @@ export async function buildVegLibrary(
       ci,
       await captureImpostor(renderer, parts, { centerY: t.stats.height * 0.5, radius }),
     );
-    progress(0.56 + 0.18 * ((ci + 1) / TREE_SPECIES.length), `veg: impostor ${sp.id}`);
+    progress(0.56 + 0.18 * ((ci + 1) / TREE_SPECIES.length), `植被：正在捕获 ${sp.id} impostor`);
   }
 
   // ---- understory: shrubs / fern / flowers (R1 only) -------------------------
-  progress(0.76, 'veg: understory pools');
+  progress(0.76, '植被：正在生成林下植被池');
   const underSpecies = [
     { cls: VegClass.BushHazel, sp: UNDERSTORY_SPECIES[0] as SpeciesParams },
     { cls: VegClass.BushPink, sp: UNDERSTORY_SPECIES[1] as SpeciesParams },
@@ -358,7 +358,7 @@ export async function buildVegLibrary(
   }
 
   // ---- extras: deadfall + boulders/slabs -------------------------------------
-  progress(0.86, 'veg: deadfall + boulder pools');
+  progress(0.86, '植被：正在生成枯木与巨石池');
   const deadTex = barkOf(5);
   // weathered-wood darkening: the snag bark bake is pale gray and logs read
   // as glowing white slivers in noon sun without it
@@ -455,7 +455,7 @@ export async function buildVegLibrary(
   }
 
   // ---- size-stratified stones + fallen branches (no-bare-ground layer) ------
-  progress(0.93, 'veg: stone/branch pools');
+  progress(0.93, '植被：正在生成石块与树枝池');
   const stoneClasses: {
     cls: number;
     preset: 'boulder' | 'cobble';
@@ -552,6 +552,6 @@ export async function buildVegLibrary(
   }
   clsMaxDist[VegClass.Branch] = 230;
 
-  progress(1, 'veg: pools ready');
+  progress(1, '植被资源已就绪');
   return { pools, impostors, clsHeight, clsRadius, clsMaxDist, atlases, barks };
 }

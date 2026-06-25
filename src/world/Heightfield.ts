@@ -114,7 +114,7 @@ export class Heightfield {
     const cfg = qualityConfig(params.preset);
     const mp = makeMacroParams(seed);
 
-    progress(0.04, `terrain: synthesizing ${cfg.heightRes}² heightfield`);
+    progress(0.04, `地形：正在生成 ${cfg.heightRes}² 高度场`);
     const synth = await runHeightSynthesis(renderer, cfg.heightRes, mp);
 
     const heightTex = new StorageTexture(cfg.heightRes, cfg.heightRes);
@@ -135,15 +135,15 @@ export class Heightfield {
     hf.noiseB = noise.texB;
 
     // --- erosion at sim res, then detail-preserving compose back to full res --
-    progress(0.08, `terrain: synthesizing ${cfg.simRes}² erosion grid`);
+    progress(0.08, `地形：正在生成 ${cfg.simRes}² 侵蚀网格`);
     const synthSim = await runHeightSynthesis(renderer, cfg.simRes, mp);
 
-    progress(0.1, `terrain: eroding (${cfg.erosionIters} iterations)`);
+    progress(0.1, `地形：正在侵蚀（${cfg.erosionIters} 次迭代）`);
     const erosion = await runErosion(renderer, synthSim.height, synthSim.hardness, {
       res: cfg.simRes,
       texel: WORLD_SIZE / cfg.simRes,
       iters: cfg.erosionIters,
-      onProgress: (d, t) => progress(0.1 + 0.45 * (d / t), `terrain: eroding ${d}/${t}`),
+      onProgress: (d, t) => progress(0.1 + 0.45 * (d / t), `地形：正在侵蚀 ${d}/${t}`),
     });
     hf.simWater = erosion.water;
     hf.simSediment = erosion.sediment;
@@ -170,14 +170,14 @@ export class Heightfield {
     hf.waterFarRes = Math.floor(cfg.simRes / 8);
     hf.waterYFar = await Heightfield.reduceWaterY(renderer, hf.waterY, cfg.simRes, 8);
 
-    progress(0.7, 'terrain: composing eroded field');
+    progress(0.7, '地形：正在合成侵蚀后的高度场');
     await hf.composeEroded(renderer, synthSim.height, erosion.eroded);
 
-    progress(0.82, 'terrain: deriving maps');
+    progress(0.82, '地形：正在派生贴图');
     await hf.rebuildDerivedMaps(renderer);
     await hf.buildFieldsTex(renderer);
 
-    progress(0.88, 'terrain: biome + snow classification');
+    progress(0.88, '地形：正在进行生物群系与积雪分类');
     if (!hf.fieldsTex) throw new Error('fieldsTex missing before biome pass');
     hf.biomeTex = await runBiomeSnow(renderer, hf.height, {
       res: hf.res,
@@ -186,7 +186,7 @@ export class Heightfield {
       fieldsTex: hf.fieldsTex,
     });
 
-    progress(0.93, 'terrain: height readback for camera');
+    progress(0.93, '地形：正在回读高度供相机使用');
     const ab = await renderer.getArrayBufferAsync(hf.height.value);
     hf.cpuHeights = new Float32Array(ab);
     const wab = await renderer.getArrayBufferAsync(hf.waterY.value);
